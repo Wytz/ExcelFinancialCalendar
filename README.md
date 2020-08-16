@@ -1,4 +1,5 @@
-# ExcelFinancialCalendar
+# Creating a financial calendar in Excel
+
 Create a financial calendar in Excel with this VBA script
 
 I found that lots of mutations are actually very predictable, but yet I never felt in control. Hence me creating this script.
@@ -10,9 +11,9 @@ Every month is shown in a separate sheet, and every day is represented by a smal
 
 The end result should look like the screenshot below.
 
-[[/images/Example.png|Example of the outcome]]
+![Example of the outcome](images/Example.png)
 
-##Why Excel/VBA?
+## Why Excel/VBA?
 
 While there are existing tools that pretty much do the same, those are often paid and are limited in the operations you can perform with the data. 
 My main reason to program this in Excel are:
@@ -24,7 +25,7 @@ My main reason to program this in Excel are:
 * Excel has funky features which automatically fills in the names of the months and days of the weeks in the language that you have configured it.
 
 
-##HOW TO USE:
+## HOW TO USE:
 
 * Open the attached "Template.xlsx" workbook
 * This contains two sheets, one named "Income", and one named "Expenditures" (These names can be changed in the code if you want to name them differently)
