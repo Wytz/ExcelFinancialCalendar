@@ -1,0 +1,159 @@
+Sub CalendarMaker()
+	InputYear = 2020
+	itemsPerDay = 8
+	IncomeSheetName = "Income"
+        ExpendituresSheetName = "Expenditures"
+	ResultsSheetName = "Monthly Results"
+	Months = "Month"
+	Expected_month = "Projected"
+	Real_month = "Real"
+	' First part is positive numbers, second part negative numbers, third part is zero values
+	CurrencyFormat = "€* #,###.00;[Red]€* -#,###.00;€0.00"
+	CurrencyFormat2 = "€* #,###.00;€* -#,###.00;€0.00"
+
+    Dim MonthlyResults(1 To 12) As Double
+    For m = 1 To 12
+    	' Create a new named sheet for every month.
+    	Sheets.Add(After:=Sheets(Sheets.Count)).Name = StrConv(MonthName(m), vbProperCase)
+    	Worksheets(StrConv(MonthName(m), vbProperCase)).Activate
+    
+    	' Set the start date for every month.
+    	StartDay = DateSerial(InputYear, m, 1)
+    
+   	 	Columns("A").ColumnWidth = 3
+    	' Prepare b2:o2 for day of week labels with centering, size, height and bolding.
+    	With Range("b1:o1")
+       		.VerticalAlignment = xlCenter
+       		.HorizontalAlignment = xlCenterAcrossSelection
+       		.VerticalAlignment = xlCenter
+       		.Orientation = xlHorizontal
+       		.Font.Bold = True
+   			.Borders(xlEdgeBottom).LineStyle = xlContinuous
+           		.Borders(xlEdgeBottom).Weight = xlMedium
+   		End With
+   		' Put days of week in a2:o2.
+   		For d = 1 To 7
+        		With Range(Cells(1, d * 2), Cells(1, d * 2 + 1))
+            	.Merge
+            	.Value = WeekdayName(d, False, vbMonday)
+        		End With
+   		Next d
+        
+   		' Set variable and get which day of the week the month starts.
+   		' Set the  number of days in a month
+   		NumberOfDays = Day(WorksheetFunction.EoMonth(StartDay, 0))
+   		WeekNumber = WorksheetFunction.WeekNum(StartDay)
+  		' Set which row is the first one with the dates
+  		Row = 2
+  		Column = (2 * Weekday(StartDay, vbMonday)) - 1
+  		i = 1
+  		While i <= NumberOfDays
+      		' Fill in the date.
+      		Column = Column + 2
+      		InputDate = DateSerial(InputYear, m, i)
+      		With ActiveSheet.Range(Cells(Row, Column - 1), Cells(Row, Column))
+        			.Merge
+        			.Value = Format(InputDate, "dd")
+        			.Font.Bold = True
+        			.Borders(xlEdgeBottom).LineStyle = xlContinuous
+      		End With
+      	C = 2
+      	InputRow = Row
+     	' Fill in the income. If it is the first day of the month, add result of last month.
+      	With ActiveSheet.Range(Cells(Row, Column - 1), Cells(Row + itemsPerDay, Column))
+        		.Borders(xlEdgeBottom).LineStyle = xlContinuous
+        		.Borders(xlEdgeBottom).Weight = xlMedium
+        		.Borders(xlEdgeRight).LineStyle = xlContinuous
+        		.Borders(xlEdgeRight).Weight = xlMedium
+        		.Borders(xlEdgeLeft).LineStyle = xlContinuous
+        		.Borders(xlEdgeLeft).Weight = xlMedium
+        		.Borders(xlEdgeTop).LineStyle = xlContinuous
+        		.Borders(xlEdgeTop).Weight = xlMedium
+      	End With
+      	ActiveSheet.Range(Cells(Row + itemsPerDay, Column - 1), Cells(Row + itemsPerDay, Column)).Borders(xlEdgeTop).LineStyle = xlDouble
+      	If i = 1 And m > 1 Then
+        		ActiveSheet.Cells(InputRow + 1, Column - 1) = "Result previous month"
+        		ActiveSheet.Cells(InputRow + 1, Column).Formula = "=" & StrConv(MonthName(m - 1), vbProperCase) & "!" & "R" & PreviousRow & "C" & PreviousColumn
+        		InputRow = InputRow + 1
+      	End If
+      	Do While Worksheets(IncomeSheetName).Cells(C, 1).Value <> ""
+        		If DateValue(Worksheets(IncomeSheetName).Cells(C, 3).Value) = InputDate Then
+            		ActiveSheet.Cells(InputRow + 1, Column - 1).Formula = "=" & IncomeSheetName & "!A" & C
+            		ActiveSheet.Cells(InputRow + 1, Column).Formula = "=" & IncomeSheetName & "!B" & C
+            		InputRow = InputRow + 1
+        		End If
+      		C = C + 1
+      		Loop
+      		' Fill in the expenditures.
+      		C = 2
+      		Do While Worksheets(ExpendituresSheetName).Cells(C, 1).Value <> ""
+        			If DateValue(Worksheets(ExpendituresSheetName).Cells(C, 3).Value) = InputDate Then
+            			ActiveSheet.Cells(InputRow + 1, Column - 1).Formula = "=" & ExpendituresSheetName & "!A" & C
+           		 		ActiveSheet.Cells(InputRow + 1, Column).Formula = "=-" & ExpendituresSheetName & "!B" & C
+            			InputRow = InputRow + 1
+        			End If
+      		C = C + 1
+      		Loop
+      		' Calculate the daily mutation (Skip for the Mondays and the first day of the month).
+      		If Column = 3 Then
+        			ActiveSheet.Cells(Row + itemsPerDay, Column).FormulaR1C1 = "=R[-" & itemsPerDay + 1 & "]C[12]+SUM(R[-" & itemsPerDay - 1 & "]C[0]:R[-1]C[0])"
+      		Else
+        			ActiveSheet.Cells(Row + itemsPerDay, Column).FormulaR1C1 = "=R[0]C[-2]+SUM(R[-" & itemsPerDay - 1 & "]C[0]:R[-1]C[0])"
+      		End If
+      		' Format all the cells above as currency
+      		ActiveSheet.Range(Cells(Row, Column), Cells(Row + itemsPerDay - 1, Column)).NumberFormat = CurrencyFormat2
+      		' Make font of daily total red if number becomes negative
+      		With Cells(Row + itemsPerDay, Column).FormatConditions.Add(xlCellValue, xlLess, "=0")
+        			.Font.Color = vbRed
+        			.StopIfTrue = False
+      		End With
+      		ActiveSheet.Columns(Column - 1).ColumnWidth = 19
+      		ActiveSheet.Columns(Column).ColumnWidth = 11
+      		' Fill in the week number in the first column (but only if it is empty).
+      		If IsEmpty(ActiveSheet.Cells(Row, 1)) Then
+        			With ActiveSheet.Cells(Row, 1)
+            			.Value = WeekNumber
+            			.Font.Color = RGB(95, 95, 95)
+            			.HorizontalAlignment = xlCenter
+        			End With
+      		End If
+     		' Save the result of the month to a variable.
+     		If i = NumberOfDays Then
+        			MonthlyResults(m) = ActiveSheet.Cells(Row + itemsPerDay, Column).Value
+        			PreviousRow = Row + itemsPerDay
+        			PreviousColumn = Column
+     		End If
+     		If Column = 15 Then
+        		Column = 1
+        		Row = Row + itemsPerDay + 1
+        		WeekNumber = WeekNumber + 1
+     		End If
+     		i = i + 1
+   		Wend
+
+	Next m
+
+	' Create a final sheet that shows the PLANNED monthly results (not updated when editing the calendar).
+	Sheets.Add(After:=Sheets(Sheets.Count)).Name = ResultsSheetName
+	Worksheets(ResultsSheetName).Activate
+	With Range("a1:c1")
+    	.Font.Bold = True
+    	.HorizontalAlignment = xlCenter
+	End With
+	Range("a1").Value = Months
+	Range("b1").Value = Expected_month
+	Range("c1").Value = Real_month
+	For m = 1 To 12
+    	Cells(m + 1, 1) = StrConv(MonthName(m), vbProperCase)
+    	If m > 1 Then
+        		Cells(m + 1, 2) = MonthlyResults(m) - MonthlyResults(m - 1)
+    	Else
+        		Cells(m + 1, 2) = MonthlyResults(m)
+    	End If
+	Next m
+	ActiveSheet.Columns(1).ColumnWidth = 12
+	ActiveSheet.Columns(2).ColumnWidth = 15
+	ActiveSheet.Columns(3).ColumnWidth = 12
+	ActiveSheet.Range("B2:C13").NumberFormat = CurrencyFormat
+
+End Sub
